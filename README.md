@@ -1,5 +1,11 @@
 # Ansible script to generate nodes for students
 
+Creates a number of virtual machines with
+
+Provides remote access to
+- SSH (native or web interface)
+- a graphical desktop (VNC via web interface or RDP via client)
+
 ## Environment variables
 
 | Name             | Optional | Description                       |
@@ -25,3 +31,9 @@ Standard OpenStack environment variables, such as:
 - `OS_PASSWORD`
 - `OS_USERNAME`
 
+## Usage
+
+1. Set the required environment variables
+2. Run `ansible-playbook deploy.yaml`
+3. See `generated-server-list.txt` for the IP adresses of the created machines
+4. Open <https://IP-adress> and ignore the security warning
