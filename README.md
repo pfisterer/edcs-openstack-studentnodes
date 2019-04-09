@@ -1,4 +1,4 @@
-# Ansible script to generate nodes for students
+# Ansible script to generate virtual machines in OpenStack for students
 
 Creates a number of virtual machines with
 
