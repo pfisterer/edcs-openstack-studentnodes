@@ -1,6 +1,6 @@
 [Unit]
 Description=IceWM
-After=my-x11vnc
+After=x11vnc.service
 
 [Service]
 Type=simple
