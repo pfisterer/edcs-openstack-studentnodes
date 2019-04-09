@@ -1,0 +1,14 @@
+[Unit]
+Description=IceWM
+After=my-x11vnc
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+Environment="DISPLAY=:1"
+ExecStart=/usr/bin/icewm
+
+
+[Install]
+WantedBy=multi-user.target

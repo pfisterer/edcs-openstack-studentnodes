@@ -1,0 +1,13 @@
+[Unit]
+Description=x11vnc
+After=my-xvfb.service
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+Environment="DISPLAY=:1"
+ExecStart=/usr/bin/x11vnc -display :1 -noxrecord -noxfixes -noxdamage -forever -passwd {{ lookup('env','NODE_PASSWORD') | default('bla', true) }}
+
+[Install]
+WantedBy=multi-user.target

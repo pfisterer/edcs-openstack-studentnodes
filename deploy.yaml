@@ -1,0 +1,294 @@
+---
+- hosts: localhost
+  tasks:
+    - name: create network
+      os_network:
+        name: "{{ network_name }}"
+
+    - name: create subnet
+      os_subnet:
+        network_name: "{{ network_name }}"
+        name: "{{ subnet_name }}"
+        cidr: 10.8.10.0/24
+        dns_nameservers:
+          - "{{ dns_server_1 }}"
+          - "{{ dns_server_2 }}"
+      register: subnet
+
+    - name: create router
+      os_router:
+        name: "{{ router_name }}"
+        network: "{{ external_network_name }}"
+        interfaces:
+          - "{{ subnet_name }}"
+        enable_snat: yes # cf. https://github.com/ansible/ansible/issues/29903
+      register: router
+
+    - name: Set variables
+      set_fact:
+        state: present
+        routeruuid: "{{ router.id }}"
+        subnetuuid: "{{ subnet.id }}"
+
+    - name: Create OpenStack instance
+      os_server:
+        security_groups: "{{security_group}}"
+        name: "{{ nodes_name }}{{ item }}"
+        image: "{{ nodes_image }}"
+        key_name: "{{ key_name }}"
+        flavor_ram: "{{ nodes_flavor_ram if not nodes_flavor_name else omit }}"
+        flavor: "{{ nodes_flavor_name if nodes_flavor_name else omit }}"
+        nics:
+          - net-name: "{{ network_name }}"
+        floating_ip_pools: "{{ floating_ip_pools }}"
+        userdata: |
+          #cloud-config
+          package_upgrade: true
+          hostname: "{{ nodes_name }}{{ item }}"
+          manage_etc_hosts: false
+          packages:
+            - python
+            - python-simplejson
+      when: state == "present"
+      register: "instances"
+      with_sequence: count={{ nodes_count }}
+
+    - name: Update inventory
+      add_host:
+        name: "{{ item.server.name }}"
+        ansible_ssh_host: "{{ item.openstack.accessIPv4 }}"
+        ansible_ssh_user: ubuntu
+        groupname: nodes
+      with_items: "{{ instances.results }}"
+      when: state == "present"
+
+    - name: Save inventory to file
+      template:
+        src: files/inventory-out-template.j2
+        dest: generated-server-list.txt
+      when: state == "present"
+
+
+- hosts: all
+  gather_facts: False
+  tasks:
+    - name: Wait during nodes boot
+      wait_for:
+        host: "{{ hostvars[item]['ansible_ssh_host'] }}"
+        port: 22
+        connect_timeout: 20
+        timeout: 600
+        search_regex: OpenSSH
+      vars:
+        ansible_connection: local
+      with_items: "{{ groups.nodes }}"
+
+
+- hosts: all
+  gather_facts: False
+  tasks:
+    - name: Wait for cloud-init to finish
+      raw: while ! test -f /var/lib/cloud/instance/boot-finished; do sleep 1; done
+      retries: 5
+      delay: 1
+      tags:
+        - skip_ansible_lint
+
+- hosts: localhost
+  connection: local
+
+  vars:
+    ssh_known_hosts_command: "ssh-keyscan -T 10"
+    ssh_known_hosts_file: "{{ lookup('env','HOME') + '/.ssh/known_hosts' }}"
+
+  tasks:
+    - name: For each host, scan for its ssh public key
+      shell: "ssh-keyscan -trsa {{ hostvars[item]['ansible_ssh_host'] }}"
+      with_items: "{{ groups.nodes }}"
+      register: ssh_known_host_results
+      until: ssh_known_host_results.stdout != ''
+      retries: 75
+      ignore_errors: yes
+
+    - debug: msg="{{ groups.nodes }}"
+
+    - name: Remove existing public keys in the '{{ ssh_known_hosts_file }}'
+      known_hosts:
+        name: "{{ hostvars[item]['ansible_ssh_host'] }}"
+        state: "absent"
+        path: "{{ ssh_known_hosts_file }}"
+      with_items: "{{ groups.nodes }}"
+
+    - name: Add/update the public key in the '{{ ssh_known_hosts_file }}'
+      known_hosts:
+        name: "{{ hostvars[item.item]['ansible_ssh_host'] }}"
+        key: "{{ item.stdout }}"
+        state: "present"
+        path: "{{ ssh_known_hosts_file }}"
+      with_items: "{{ ssh_known_host_results.results }}"
+
+
+
+
+
+
+
+
+
+- hosts: all
+  become: yes
+  become_user: root
+  tasks:
+    - name: Enable swap file
+      shell: |
+        fallocate -l 4G /swapfile
+        chmod 600 /swapfile
+        mkswap /swapfile
+        swapon /swapfile
+      args:
+        creates: /swapfile
+
+    - name: Install Docker APT repo GPG key
+      apt_key:
+        id: F76221572C52609D
+        keyserver: keyserver.ubuntu.com
+        state: present
+
+    - name: Setup Docker APT repo
+      apt_repository:
+        repo: deb http://apt.dockerproject.org/repo ubuntu-xenial main
+        state: present
+
+    - name: MS VS Code - install apt key
+      become: yes
+      apt_key:
+        url: "https://packages.microsoft.com/keys/microsoft.asc"
+        state: present
+
+    - name: MS VS Code - add repo (apt)
+      become: yes
+      apt_repository:
+        repo: deb [arch=amd64] https://packages.microsoft.com/repos/vscode stable main
+        filename: vscode
+        state: present
+
+    - name: Install packages
+      apt:
+        name: [
+            "nodejs",
+            "docker-engine",
+            "python-pip",
+            "python3",
+            "python3-pip",
+            "openjdk-11-jdk-headless",
+            "libpostgresql-jdbc-java",
+            "nginx",
+            "maven",
+            "git",
+            "x11vnc",
+            "xvfb",
+            "novnc",
+            "xrdp",
+            "icewm",
+            "firefox",
+            "xarchiver",
+            "pcmanfm",
+            "code", # ms vs code
+          ]
+        state: present
+        update_cache: yes
+
+    # https://github.com/huashengdun/webssh
+    - name: Install web ssh
+      pip:
+        name: ["webssh", "pyOpenSSL"]
+
+    - name: Create certificate directory
+      file:
+        path: /etc/ssl/private/
+        state: directory
+        mode: 0755
+
+    - name: Generate an OpenSSL private key (requires pyOpenSSL python package).
+      openssl_privatekey:
+        path: /etc/ssl/private/privkey.pem
+
+    - name: Generate an OpenSSL CSR
+      openssl_csr:
+        path: /etc/ssl/private/bla.csr
+        privatekey_path: /etc/ssl/private/privkey.pem
+        common_name: "bla"
+
+    - name: Generate a Self Signed OpenSSL certificate
+      openssl_certificate:
+        path: /etc/ssl/private/bla.cert
+        privatekey_path: /etc/ssl/private/privkey.pem
+        csr_path: /etc/ssl/private/bla.csr
+        provider: selfsigned
+
+    - name: Create combined key/cert file for novnc
+      shell: cat /etc/ssl/private/bla.cert /etc/ssl/private/privkey.pem > /etc/ssl/private/combined.pem
+      args:
+        creates: /etc/ssl/private/combined.pem
+
+    - name: Allow password-based login
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "^PasswordAuthentication no$"
+        line: "PasswordAuthentication yes"
+        owner: root
+        group: root
+
+    - name: Change Password for user ubuntu
+      user: name=ubuntu password="{{ (lookup('env','NODE_PASSWORD') | default('bla', true)) | password_hash('sha512', 'saltdfjalsdf') }}" update_password=always
+    
+    - name: restart sshd
+      service: name=sshd state=restarted
+
+    - name: copy systemd files
+      template:
+        src: "{{ item }}"
+        dest: /etc/systemd/system/
+        owner: root
+        mode: 0664
+      with_fileglob:
+        - files/systemd/*.service
+
+    - name: copy nginx www files
+      copy:
+        src: "{{ item }}"
+        dest: /var/www/html
+        owner: www-data
+        mode: 0664
+      with_fileglob:
+        - files/www/*
+
+    - name: copy nginx config file
+      copy:
+        src: files/nginx/nginx.conf
+        dest: /etc/nginx/
+        owner: root
+        mode: 0664
+
+    - name: Enable services
+      systemd: enabled=yes name={{ item }} daemon_reload=yes
+      loop:
+        - xvfb
+        - icewm
+        - x11vnc
+        - novnc
+        - xrdp 
+        - wssh
+
+    - name: (Re-) start services
+      systemd: state=restarted name={{ item }} daemon_reload=yes
+      loop:
+        - sshd
+        - nginx
+        - xvfb
+        - icewm
+        - x11vnc
+        - novnc
+        - xrdp 
+        - wssh
+

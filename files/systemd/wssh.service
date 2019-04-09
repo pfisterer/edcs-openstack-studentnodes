@@ -1,0 +1,9 @@
+[Unit]
+Description=wssh
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/wssh --address='127.0.0.1' --port=1234
+
+[Install]
+WantedBy=multi-user.target
