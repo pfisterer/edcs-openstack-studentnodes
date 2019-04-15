@@ -53,6 +53,13 @@
       register: "instances"
       with_sequence: count={{ nodes_count }}
 
+    - name: Remove any existing public keys in local '{{ ssh_known_hosts_file }}'
+      known_hosts:
+        name: "{{ item.openstack.accessIPv4 }}"
+        state: "absent"
+        path: "{{ ssh_known_hosts_file }}"
+      with_items: "{{ instances.results }}"
+
     - name: Update inventory
       add_host:
         name: "{{ item.server.name }}"
@@ -97,10 +104,6 @@
 - hosts: localhost
   connection: local
 
-  vars:
-    ssh_known_hosts_command: "ssh-keyscan -T 10"
-    ssh_known_hosts_file: "{{ lookup('env','HOME') + '/.ssh/known_hosts' }}"
-
   tasks:
     - name: For each host, scan for its ssh public key
       shell: "ssh-keyscan -trsa {{ hostvars[item]['ansible_ssh_host'] }}"
@@ -112,13 +115,6 @@
 
     - debug: msg="{{ groups.nodes }}"
 
-    - name: Remove existing public keys in the '{{ ssh_known_hosts_file }}'
-      known_hosts:
-        name: "{{ hostvars[item]['ansible_ssh_host'] }}"
-        state: "absent"
-        path: "{{ ssh_known_hosts_file }}"
-      with_items: "{{ groups.nodes }}"
-
     - name: Add/update the public key in the '{{ ssh_known_hosts_file }}'
       known_hosts:
         name: "{{ hostvars[item.item]['ansible_ssh_host'] }}"
@@ -126,13 +122,6 @@
         state: "present"
         path: "{{ ssh_known_hosts_file }}"
       with_items: "{{ ssh_known_host_results.results }}"
-
-
-
-
-
-
-
 
 
 - hosts: all
