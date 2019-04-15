@@ -33,9 +33,34 @@ Original Github repo: <https://github.com/pfisterer/edsc-openstack-studentnodes>
 
 For default values, see [group_vars/all.yaml](group_vars/all.yaml)
 
-Standard OpenStack environment variables, such as:
+Standard OpenStack environment variables **are required**, such as:
 - `OS_PROJECT_NAME`
 - `OS_DOMAIN_NAME`
 - `OS_AUTH_URL`
 - `OS_PASSWORD`
 - `OS_USERNAME`
+
+## Example
+
+```bash 
+export OS_USERNAME="my-openstack-user-name"
+export OS_PASSWORD="my-openstack-secret-pw"
+export OS_DOMAIN_NAME="default"
+export OS_AUTH_URL="http://openstack-controller-hostname:5000/v3"
+export OS_PROJECT_NAME="my-project"
+export OS_DOMAIN_NAME="default"
+
+export ANSIBLE_HOST_KEY_CHECKING=False 
+
+export NODE_COUNT=1
+export NODE_PASSWORD="bla"
+export IMAGE="Ubuntu Server 18.04 64bit (29.05.2018)"
+export NODE_FLAVOR="m1.medium"
+export NODE_SEC_GROUP="default"
+export KEY="my-laptop-ssh-key"
+export EXT_NET="ext-network"
+export FLOATING_IP_POOL="ext-network"
+
+ansible-playbook deploy.yaml
+```
+
