@@ -21,7 +21,8 @@
         network: "{{ external_network_name }}"
         interfaces:
           - "{{ subnet_name }}"
-        enable_snat: yes # cf. https://github.com/ansible/ansible/issues/29903
+          # Enable if you experience problems (re-creating) the router 
+          # enable_snat: yes # cf. https://github.com/ansible/ansible/issues/29903
       register: router
 
     - name: Set variables
