@@ -21,7 +21,7 @@
         network: "{{ external_network_name }}"
         interfaces:
           - "{{ subnet_name }}"
-          # Enable if you experience problems (re-creating) the router 
+          # Enable if you experience problems (re-creating) the router
           # enable_snat: yes # cf. https://github.com/ansible/ansible/issues/29903
       register: router
 
@@ -184,9 +184,19 @@
             "xarchiver",
             "pcmanfm",
             "code", # ms vs code
+            "parcellite", # lightweight GTK+ clipboard manager,
+            "openjdk-8-jdk","openjdk-8-demo","openjdk-8-doc","openjdk-8-jre-headless","openjdk-8-source"
           ]
         state: present
         update_cache: yes
+
+    - name: Un-install packages
+      apt:
+        name: [
+          "openjdk-11-*"
+        ]
+        state: absent
+        update_cache: no
 
     # https://github.com/huashengdun/webssh
     - name: Install web ssh
