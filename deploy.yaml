@@ -170,7 +170,6 @@
             "python-pip",
             "python3",
             "python3-pip",
-            "openjdk-11-jdk-headless",
             "libpostgresql-jdbc-java",
             "nginx",
             "maven",
@@ -189,14 +188,6 @@
           ]
         state: present
         update_cache: yes
-
-    - name: Un-install packages
-      apt:
-        name: [
-          "openjdk-11-*"
-        ]
-        state: absent
-        update_cache: no
 
     # https://github.com/huashengdun/webssh
     - name: Install web ssh
