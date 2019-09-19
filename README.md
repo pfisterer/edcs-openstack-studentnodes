@@ -48,7 +48,6 @@ export OS_PASSWORD="my-openstack-secret-pw"
 export OS_DOMAIN_NAME="default"
 export OS_AUTH_URL="http://openstack-controller-hostname:5000/v3"
 export OS_PROJECT_NAME="my-project"
-export OS_DOMAIN_NAME="default"
 
 export ANSIBLE_HOST_KEY_CHECKING=False 
 
