@@ -122,7 +122,6 @@
         path: "{{ ssh_known_hosts_file }}"
       with_items: "{{ ssh_known_host_results.results }}"
 
-
 - hosts: all
   become: yes
   become_user: root
