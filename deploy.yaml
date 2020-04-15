@@ -222,7 +222,7 @@
 
     - name: Change Password for user ubuntu
       user: name=ubuntu password="{{ (lookup('env','NODE_PASSWORD') | default('bla', true)) | password_hash('sha512', 'saltdfjalsdf') }}" update_password=always
-    
+
     - name: restart sshd
       service: name=sshd state=restarted
 
@@ -258,7 +258,7 @@
         - icewm
         - x11vnc
         - novnc
-        - xrdp 
+        - xrdp
         - wssh
 
     - name: (Re-) start services
@@ -270,6 +270,5 @@
         - icewm
         - x11vnc
         - novnc
-        - xrdp 
+        - xrdp
         - wssh
-
