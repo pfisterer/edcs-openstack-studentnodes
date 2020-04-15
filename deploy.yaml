@@ -76,7 +76,6 @@
         dest: generated-server-list.txt
       when: state == "present"
 
-
 - hosts: all
   gather_facts: False
   tasks:
