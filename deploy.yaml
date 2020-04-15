@@ -173,7 +173,11 @@
             "pcmanfm",
             "code", # ms vs code
             "parcellite", # lightweight GTK+ clipboard manager,
-            "openjdk-8-jdk","openjdk-8-demo","openjdk-8-doc","openjdk-8-jre-headless","openjdk-8-source"
+            "openjdk-8-jdk",
+            "openjdk-8-demo",
+            "openjdk-8-doc",
+            "openjdk-8-jre-headless",
+            "openjdk-8-source",
           ]
         state: present
         update_cache: yes
