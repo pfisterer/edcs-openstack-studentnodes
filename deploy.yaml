@@ -138,17 +138,6 @@
       args:
         creates: /swapfile
 
-    - name: Install Docker APT repo GPG key
-      apt_key:
-        id: F76221572C52609D
-        keyserver: keyserver.ubuntu.com
-        state: present
-
-    - name: Setup Docker APT repo
-      apt_repository:
-        repo: deb http://apt.dockerproject.org/repo ubuntu-xenial main
-        state: present
-
     - name: MS VS Code - install apt key
       become: yes
       apt_key:
@@ -166,7 +155,7 @@
       apt:
         name: [
             "nodejs",
-            "docker-engine",
+            "docker.io",
             "python-pip",
             "python3",
             "python3-pip",
