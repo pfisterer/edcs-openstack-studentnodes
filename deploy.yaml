@@ -90,7 +90,6 @@
         ansible_connection: local
       with_items: "{{ groups.nodes }}"
 
-
 - hosts: all
   gather_facts: False
   tasks:
