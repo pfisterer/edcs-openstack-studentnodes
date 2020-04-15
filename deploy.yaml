@@ -182,7 +182,7 @@
     # https://github.com/huashengdun/webssh
     - name: Install web ssh
       pip:
-        name: ["webssh", "pyOpenSSL"]
+        name: ["webssh", "pyOpenSSL", "jupyter"]
 
     - name: Create certificate directory
       file:
