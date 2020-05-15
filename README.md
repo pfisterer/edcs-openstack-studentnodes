@@ -99,7 +99,7 @@ Required by Openstack:
 # Build Docker image
 
 Build the image
-- `docker build -t farberg/edsc-openstack-studentnodes`
+- `docker build -t farberg/edsc-openstack-studentnodes .`
 
 Run a container
 - `docker run --rm -ti farberg/edsc-openstack-studentnodes` 
