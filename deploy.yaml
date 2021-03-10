@@ -48,8 +48,7 @@
           hostname: "{{ nodes_name }}{{ item }}"
           manage_etc_hosts: false
           packages:
-            - python
-            - python-simplejson
+            - python3
       when: state == "present"
       register: "instances"
       with_sequence: count={{ nodes_count }}
@@ -91,6 +90,8 @@
       with_items: "{{ groups.nodes }}"
 
 - hosts: all
+  become: yes
+  become_user: root
   gather_facts: False
   tasks:
     - name: Wait for cloud-init to finish
@@ -99,6 +100,13 @@
       delay: 1
       tags:
         - skip_ansible_lint
+
+    - name: Symlink /usr/bin/python -> /usr/bin/python3
+      raw: |
+        if [ -f /usr/bin/python3 ] && [ ! -f /usr/bin/python ]; then
+          ln --symbolic /usr/bin/python3 /usr/bin/python; 
+        fi
+      become: true
 
 - hosts: localhost
   connection: local
@@ -151,25 +159,29 @@
     - name: Install packages
       apt:
         name: [
-            "nodejs",
-            "docker.io",
-            "python-pip",
-            "python3",
-            "python3-pip",
-            "libpostgresql-jdbc-java",
+            # Remote desktop
             "nginx",
-            "maven",
-            "git",
             "x11vnc",
             "xvfb",
             "novnc",
             "xrdp",
-            "icewm",
-            "firefox",
+            "net-tools", # required by novnc
+            # Desktop environment
+            "lightdm",
+            "xfce4",
             "xarchiver",
-            "pcmanfm",
+            "chromium-browser",
             "code", # ms vs code
-            "parcellite", # lightweight GTK+ clipboard manager,
+            # Software development
+            "nodejs",
+            "npm",
+            "docker.io",
+            "python3",
+            "python3-pip",
+            "conntrack", # minikube
+            "maven",
+            "git",
+            "libpostgresql-jdbc-java",
             "openjdk-8-jdk",
             "openjdk-8-demo",
             "openjdk-8-doc",
@@ -184,6 +196,9 @@
       pip:
         name: ["webssh", "pyOpenSSL", "jupyter"]
 
+    #-------------------------------------------------------
+    # Generate self-signed certificate
+    #-------------------------------------------------------
     - name: Create certificate directory
       file:
         path: /etc/ssl/private/
@@ -212,6 +227,10 @@
       args:
         creates: /etc/ssl/private/combined.pem
 
+    #-------------------------------------------------------
+    # Configure password-based login for user ubuntu
+    #-------------------------------------------------------
+
     - name: Allow password-based login
       lineinfile:
         path: /etc/ssh/sshd_config
@@ -223,8 +242,9 @@
     - name: Change Password for user ubuntu
       user: name=ubuntu password="{{ (lookup('env','NODE_PASSWORD') | default('bla', true)) | password_hash('sha512', 'saltdfjalsdf') }}" update_password=always
 
-    - name: restart sshd
-      service: name=sshd state=restarted
+    #-------------------------------------------------------
+    # Configure systemd services
+    #-------------------------------------------------------
 
     - name: copy systemd files
       template:
@@ -234,6 +254,24 @@
         mode: 0664
       with_fileglob:
         - files/systemd/*.service
+
+    - name: Create directory for xstartup file
+      file:
+        path: /home/ubuntu/.vnc/
+        state: directory
+        owner: ubuntu
+        mode: 0755
+
+    - name: copy xstartup file
+      copy:
+        src: files/xstartup
+        dest: /home/ubuntu/.vnc/
+        owner: ubuntu
+        mode: 0755
+
+    #-------------------------------------------------------
+    # Configure nginx
+    #-------------------------------------------------------
 
     - name: copy nginx www files
       copy:
@@ -251,23 +289,62 @@
         owner: root
         mode: 0664
 
+    - name: XXX
+      replace:
+        path: "/etc/default/grub"
+        regexp: ".*GRUB_CMDLINE_LINUX_DEFAULT.*"
+        replace: '#GRUB_CMDLINE_LINUX_DEFAULT="quiet splash"'
+
+    - name: XXX
+      replace:
+        path: "/etc/default/grub"
+        regexp: ".*GRUB_CMDLINE_LINUX=.*"
+        replace: 'GRUB_CMDLINE_LINUX="text" '
+
+    - name: CCC
+      shell: sudo update-grub
+
+    - name: CCC
+      shell: systemctl set-default multi-user.target
+
+- hosts: all
+  tasks:
+    #-------------------------------------------------------
+    # Set VNC password as user ubuntu
+    #-------------------------------------------------------
+    - name: Set VNC password
+      shell: "x11vnc -storepasswd {{ lookup('env','NODE_PASSWORD') | default('bla', true) }} ~/.vnc/passwd"
+
+- hosts: all
+  become: yes
+  become_user: root
+  tasks:
+    #-------------------------------------------------------
+    # Enable and start services
+    #-------------------------------------------------------
+
     - name: Enable services
-      systemd: enabled=yes name={{ item }} daemon_reload=yes
+      systemd:
+        enabled: yes
+        name: "{{ item }}"
+        daemon_reload: yes
       loop:
         - xvfb
-        - icewm
         - x11vnc
         - novnc
         - xrdp
         - wssh
+        - nginx
 
     - name: (Re-) start services
-      systemd: state=restarted name={{ item }} daemon_reload=yes
+      systemd:
+        state: restarted
+        name: "{{ item }}"
+        daemon_reload: yes
       loop:
         - sshd
         - nginx
         - xvfb
-        - icewm
         - x11vnc
         - novnc
         - xrdp

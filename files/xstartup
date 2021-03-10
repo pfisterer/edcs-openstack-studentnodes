@@ -1,0 +1,7 @@
+# Load X resources (if any)
+#if [ -r "$HOME/.Xresources" ]
+#then
+#xrdb "$HOME/.Xresources"
+#fi
+
+#xfce4-session &

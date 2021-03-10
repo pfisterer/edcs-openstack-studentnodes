@@ -8,6 +8,11 @@ Provides remote access to
 
 Original Github repo: <https://github.com/pfisterer/edsc-openstack-studentnodes>
 
+## Todos
+
+- https://github.com/Xpra-org/xpra
+- https://spice-space.org/
+
 ## Usage (local installation of Ansible)
 
 1. Set the required environment variables (see table below) and run `ansible-playbook`

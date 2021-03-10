@@ -5,7 +5,8 @@ Description=Xvfb
 Type=simple
 User=ubuntu
 Group=ubuntu
-ExecStart=/usr/bin/Xvfb :1 -screen 0 1600x1200x16
+# ExecStart=/usr/bin/Xvfb :1 -screen 0 1280x1024x16
+ExecStart=xvfb-run --server-num=1 --server-args="-screen 0 1280x1024x16" -f /home/ubuntu/.xauth xfce4-session
 
 [Install]
 WantedBy=multi-user.target

@@ -7,7 +7,7 @@ Type=simple
 User=ubuntu
 Group=ubuntu
 Environment="DISPLAY=:1"
-ExecStart=/usr/bin/x11vnc -display :1 -noxrecord -noxfixes -noxdamage -forever -passwd {{ lookup('env','NODE_PASSWORD') | default('bla', true) }}
+ExecStart=/usr/bin/x11vnc -display :1 -noxrecord -noxfixes -noxdamage -forever -rfbauth ~/.vnc/passwd -auth /home/ubuntu/.xauth
 
 [Install]
 WantedBy=multi-user.target
